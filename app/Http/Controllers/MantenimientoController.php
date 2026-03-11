@@ -13,6 +13,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class MantenimientoController extends Controller
@@ -49,7 +50,14 @@ class MantenimientoController extends Controller
 
     public function store(StoreMantenimientoRequest $request): RedirectResponse
     {
-        $mantenimiento = $this->service->crear($request->validated(), auth()->user());
+        $datos = $request->validated();
+
+        if ($request->hasFile('documento')) {
+            $path = $request->file('documento')->store('mantenimientos', 'public');
+            $datos['documento_path'] = $path;
+        }
+
+        $mantenimiento = $this->service->crear($datos, auth()->user());
 
         return redirect()
             ->route('mantenimientos.show', $mantenimiento)
@@ -61,6 +69,16 @@ class MantenimientoController extends Controller
         $mantenimiento->load(['activo.categoria', 'user', 'responsable']);
 
         return view('mantenimientos.show', compact('mantenimiento'));
+    }
+
+    public function download(Mantenimiento $mantenimiento)
+    {
+        if (! $mantenimiento->documento_path || ! Storage::disk('public')->exists($mantenimiento->documento_path)) {
+            return redirect()->back()->with('error', 'Documento no disponible.');
+        }
+
+        $filename = basename($mantenimiento->documento_path);
+        return Storage::disk('public')->download($mantenimiento->documento_path, $filename);
     }
 
     public function edit(Mantenimiento $mantenimiento): View
@@ -76,7 +94,19 @@ class MantenimientoController extends Controller
 
     public function update(UpdateMantenimientoRequest $request, Mantenimiento $mantenimiento): RedirectResponse
     {
-        $this->service->actualizar($mantenimiento, $request->validated());
+        $datos = $request->validated();
+
+        if ($request->hasFile('documento')) {
+            // Eliminar documento anterior si existe
+            if ($mantenimiento->documento_path && Storage::disk('public')->exists($mantenimiento->documento_path)) {
+                Storage::disk('public')->delete($mantenimiento->documento_path);
+            }
+
+            $path = $request->file('documento')->store('mantenimientos', 'public');
+            $datos['documento_path'] = $path;
+        }
+
+        $this->service->actualizar($mantenimiento, $datos);
 
         return redirect()
             ->route('mantenimientos.show', $mantenimiento)

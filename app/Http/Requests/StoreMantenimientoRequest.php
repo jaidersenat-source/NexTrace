@@ -18,6 +18,7 @@ class StoreMantenimientoRequest extends FormRequest
             'descripcion'    => ['nullable', 'string', 'max:1000'],
             'programado_at'  => ['required', 'date', 'after_or_equal:today'],
             'costo'          => ['nullable', 'numeric', 'min:0'],
+            'documento'      => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
         ];
     }
 

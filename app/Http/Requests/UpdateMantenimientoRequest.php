@@ -19,6 +19,7 @@ class UpdateMantenimientoRequest extends FormRequest
             'estado'         => ['required', 'in:pendiente,en_proceso,completado,cancelado'],
             'observaciones'  => ['nullable', 'string', 'max:1000'],
             'costo'          => ['nullable', 'numeric', 'min:0'],
+            'documento'      => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
         ];
     }
 }

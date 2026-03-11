@@ -13,7 +13,7 @@
     </x-slot>
 
     <div class="max-w-3xl mx-auto">
-        <form action="{{ route('mantenimientos.update', $mantenimiento) }}" method="POST" class="space-y-5">
+        <form action="{{ route('mantenimientos.update', $mantenimiento) }}" method="POST" enctype="multipart/form-data" class="space-y-5">
             @csrf @method('PUT')
 
             {{-- Sección: Información del mantenimiento --}}

@@ -70,3 +70,24 @@
            class="w-full rounded-lg border-gray-300 shadow-sm text-sm"
            placeholder="0.00">
 </div>
+
+{{-- Documento (PDF) - file input estilizado --}}
+<div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Documento (PDF)</label>
+    <label for="documento"
+           class="flex items-center gap-3 w-full rounded-lg border border-gray-300 shadow-sm px-3 py-2 cursor-pointer hover:border-brand hover:bg-brand/5 transition-colors group">
+        <span class="flex items-center justify-center w-7 h-7 rounded-md bg-gray-100 group-hover:bg-brand/10 transition-colors shrink-0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400 group-hover:text-brand transition-colors">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+        </span>
+        <span id="documento-label" class="text-sm text-gray-400 group-hover:text-gray-600 transition-colors truncate">
+            Selecciona un archivo PDF...
+        </span>
+    </label>
+    <input type="file" id="documento" name="documento" accept="application/pdf" class="sr-only"
+           onchange="document.getElementById('documento-label').textContent = this.files[0]?.name ?? 'Selecciona un archivo PDF...'"/>
+    @error('documento') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+</div>

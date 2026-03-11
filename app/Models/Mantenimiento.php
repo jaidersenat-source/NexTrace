@@ -16,7 +16,7 @@ class Mantenimiento extends Model
         'empresa_id', 'activo_id', 'user_id', 'responsable_id',
         'tipo', 'titulo', 'descripcion',
         'programado_at', 'completado_at',
-        'estado', 'observaciones', 'costo',
+        'estado', 'observaciones', 'costo', 'documento_path',
     ];
 
     protected $casts = [

@@ -206,13 +206,21 @@
                                             </summary>
                                             <div class="mt-2.5 space-y-1.5 min-w-[220px]">
                                                 @foreach($log->changes['despues'] ?? [] as $campo => $valor)
+                                                    @php
+                                                        $antes = $log->changes['antes'][$campo] ?? null;
+                                                        $despues = $valor;
+                                                        $render = function ($v) {
+                                                            if (is_array($v)) return json_encode($v, JSON_UNESCAPED_UNICODE);
+                                                            return $v;
+                                                        };
+                                                    @endphp
                                                     <div class="flex items-start gap-1.5 text-[10px]">
                                                         <span class="font-bold text-gray-500 shrink-0 pt-px">{{ $campo }}:</span>
-                                                        <span class="line-through text-red-400">{{ $log->changes['antes'][$campo] ?? '—' }}</span>
+                                                        <span class="line-through text-red-400">@if(is_array($antes)){{ json_encode($antes, JSON_UNESCAPED_UNICODE) }}@else{{ $antes ?? '—' }}@endif</span>
                                                         <svg class="w-2.5 h-2.5 text-gray-300 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
                                                         </svg>
-                                                        <span class="font-semibold text-emerald-600">{{ $valor }}</span>
+                                                        <span class="font-semibold text-emerald-600">@if(is_array($despues)){{ json_encode($despues, JSON_UNESCAPED_UNICODE) }}@else{{ $despues ?? '—' }}@endif</span>
                                                     </div>
                                                 @endforeach
                                             </div>

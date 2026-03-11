@@ -156,6 +156,21 @@
 />
                     </div>
                 @endif
+
+                @if($mantenimiento->documento_path)
+                    <div class="px-6 py-4 border-t border-border bg-white">
+                        <h3 class="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">Documento</h3>
+                        <div class="flex items-center gap-3">
+                            <a href="{{ route('mantenimientos.download', $mantenimiento) }}" class="inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M21 21H3"/>
+                                </svg>
+                                Descargar PDF
+                            </a>
+                            <a href="{{ asset('storage/' . $mantenimiento->documento_path) }}" target="_blank" class="text-sm text-indigo-600 hover:underline">Ver en nueva pestaña</a>
+                        </div>
+                    </div>
+                @endif
             </div>
 
             {{-- Descripción y observaciones --}}

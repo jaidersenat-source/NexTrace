@@ -215,6 +215,8 @@ Route::middleware(['auth', 'verified', 'usuario.activo'])->group(function () {
     // 👇 SIEMPRE AL FINAL
     Route::get('/mantenimientos/{mantenimiento}', [MantenimientoController::class, 'show'])
         ->name('mantenimientos.show');
+     Route::get('/mantenimientos/{mantenimiento}/documento', [MantenimientoController::class, 'download'])
+          ->name('mantenimientos.download');
 
 });
 
