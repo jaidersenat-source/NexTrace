@@ -1,4 +1,4 @@
-<x-app-layout>
+﻿<x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -10,7 +10,7 @@
                 </div>
                 <div>
                     <h2 class="text-xl font-bold text-gray-900 tracking-tight leading-none">Mantenimientos</h2>
-                    <p class="text-xs text-gray-400 mt-0.5">Control y seguimiento de activos</p>
+                    <p class="hidden sm:block text-xs text-gray-400 mt-0.5">Control y seguimiento de activos</p>
                 </div>
             </div>
             @if(auth()->user()->esAdmin())
@@ -19,7 +19,8 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
                     </svg>
-                    Programar mantenimiento
+                    <span class="hidden sm:inline">Programar mantenimiento</span>
+                    <span class="sm:hidden">Nuevo</span>
                 </a>
             @endif
         </div>
@@ -58,10 +59,10 @@
         {{-- Barra de filtros --}}
         <form method="GET" action="{{ route('mantenimientos.index') }}"
               class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
-            <div class="flex flex-wrap gap-3 items-end">
+            <div class="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
 
                 {{-- Buscador --}}
-                <div class="flex-1 min-w-[200px]">
+                <div class="col-span-2 sm:flex-1 sm:min-w-[200px]">
                     <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Buscar</label>
                     <div class="relative">
                         <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -74,7 +75,7 @@
                 </div>
 
                 {{-- Estado --}}
-                <div class="min-w-[145px]">
+                <div class="sm:min-w-[145px]">
                     <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Estado</label>
                     <select name="estado" class="w-full rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-700 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 focus:bg-white transition-all">
                         <option value="">Todos</option>
@@ -86,7 +87,7 @@
                 </div>
 
                 {{-- Tipo --}}
-                <div class="min-w-[145px]">
+                <div class="sm:min-w-[145px]">
                     <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Tipo</label>
                     <select name="tipo" class="w-full rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-700 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 focus:bg-white transition-all">
                         <option value="">Todos</option>
@@ -97,7 +98,7 @@
                 </div>
 
                 {{-- Activo --}}
-                <div class="min-w-[175px]">
+                <div class="sm:min-w-[175px]">
                     <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Activo</label>
                     <select name="activo_id" class="w-full rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-700 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 focus:bg-white transition-all">
                         <option value="">Todos</option>
@@ -109,7 +110,7 @@
                     </select>
                 </div>
 
-                <div class="flex gap-2 pb-px">
+                <div class="col-span-2 sm:col-span-1 flex gap-2 sm:pb-px">
                     <button type="submit"
                             class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -128,14 +129,91 @@
         {{-- Tabla --}}
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
 
-            <div class="px-6 py-3.5 border-b border-gray-100 flex items-center justify-between bg-gray-50/60">
+            <div class="px-4 sm:px-6 py-3.5 border-b border-gray-100 flex items-center justify-between bg-gray-50/60">
                 <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Registros</p>
                 <span class="text-xs font-semibold text-gray-500 bg-white border border-gray-200 rounded-lg px-2.5 py-1">
                     {{ $mantenimientos->total() }} total
                 </span>
             </div>
 
-            <div class="overflow-x-auto">
+            {{-- Cards: solo móvil --}}
+            <div class="sm:hidden divide-y divide-gray-100">
+                @forelse($mantenimientos as $m)
+                    @php
+                        $tipoStyles = [
+                            'preventivo' => 'bg-violet-50 text-violet-700',
+                            'correctivo' => 'bg-orange-50 text-orange-700',
+                            'revision'   => 'bg-sky-50 text-sky-700',
+                        ];
+                        $estadoConf = [
+                            'pendiente'  => ['dot' => 'bg-amber-400',   'badge' => 'bg-amber-50 text-amber-700'],
+                            'en_proceso' => ['dot' => 'bg-blue-400',    'badge' => 'bg-blue-50 text-blue-700'],
+                            'completado' => ['dot' => 'bg-emerald-400', 'badge' => 'bg-emerald-50 text-emerald-700'],
+                            'cancelado'  => ['dot' => 'bg-gray-300',    'badge' => 'bg-gray-50 text-gray-500'],
+                        ];
+                        $ec = $estadoConf[$m->estado] ?? $estadoConf['cancelado'];
+                    @endphp
+                    <div class="p-4 {{ $m->estaVencido() ? 'bg-red-50/40' : '' }}">
+                        <div class="flex items-start justify-between gap-2 mb-2">
+                            <div class="min-w-0">
+                                <p class="font-semibold text-gray-800 text-sm leading-tight">{{ $m->titulo }}</p>
+                                <p class="text-xs text-gray-400 mt-0.5 truncate">{{ $m->activo?->nombre ?? '&mdash;' }}</p>
+                            </div>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold shrink-0 {{ $ec['badge'] }}">
+                                <span class="w-1.5 h-1.5 rounded-full {{ $ec['dot'] }}"></span>
+                                {{ $m->estadoLabel() }}
+                            </span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 mb-3">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold {{ $tipoStyles[$m->tipo] ?? 'bg-gray-100 text-gray-600' }}">
+                                {{ $m->tipoLabel() }}
+                            </span>
+                            <span class="text-xs text-gray-400">
+                                {{ $m->programado_at->format('d M Y') }}
+                                &middot; {{ $m->programado_at->diffForHumans() }}
+                            </span>
+                            @if($m->estaVencido())
+                                <span class="text-[10px] font-bold text-red-500 bg-red-100 px-1.5 py-0.5 rounded">VENCIDO</span>
+                            @elseif($m->diasRestantes() <= 3 && $m->diasRestantes() >= 0)
+                                <span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">{{ $m->diasRestantes() }}d</span>
+                            @endif
+                        </div>
+                        @if($m->responsable)
+                            <p class="text-xs text-gray-500 mb-3">
+                                <span class="font-medium">{{ $m->responsable->nombre }} {{ $m->responsable->apellido }}</span>
+                            </p>
+                        @endif
+                        <div class="flex items-center gap-2">
+                            <a href="{{ route('mantenimientos.show', $m) }}"
+                               class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+                                Ver
+                            </a>
+                            @if(in_array($m->estado, ['pendiente', 'en_proceso']) && ($m->programado_at->isToday() || $m->programado_at->isPast()))
+                                <form action="{{ route('mantenimientos.completar', $m) }}" method="POST" class="inline">
+                                    @csrf @method('PATCH')
+                                    <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors">
+                                        Completar
+                                    </button>
+                                </form>
+                            @endif
+                            @if(auth()->user()->esAdmin())
+                                <a href="{{ route('mantenimientos.edit', $m) }}"
+                                   class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors">
+                                    Editar
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <div class="px-4 py-12 text-center">
+                        <p class="font-semibold text-gray-600 text-sm">Sin mantenimientos</p>
+                        <p class="text-gray-400 text-xs mt-1">No hay registros que coincidan.</p>
+                    </div>
+                @endforelse
+            </div>
+
+            {{-- Tabla: solo sm+ --}}
+            <div class="hidden sm:block overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-100 text-sm">
                     <thead>
                         <tr class="bg-white">
@@ -387,7 +465,7 @@
             </div>
 
             @if($mantenimientos->hasPages())
-                <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between gap-4 flex-wrap">
+                <div class="px-4 sm:px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:justify-between flex-wrap">
                     <p class="text-xs text-gray-400">
                         Mostrando
                         <span class="font-semibold text-gray-600">{{ $mantenimientos->firstItem() }}–{{ $mantenimientos->lastItem() }}</span>

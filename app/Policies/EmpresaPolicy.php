@@ -15,6 +15,9 @@ class EmpresaPolicy
 
     public function update(User $user, Empresa $empresa): bool
     {
-        return $user->esAdmin() && $user->empresa_id === $empresa->id;
+        // Permitir que cualquier usuario con rol 'admin' acceda a la configuración.
+        // Antes se requería que el admin perteneciera a la misma empresa; ahora
+        // los admins pueden acceder independientemente de `empresa_id`.
+        return $user->esAdmin();
     }
 }

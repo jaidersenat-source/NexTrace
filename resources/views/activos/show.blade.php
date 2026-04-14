@@ -69,7 +69,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
             {{-- Info general --}}
-            <div class="bg-white border border-border rounded-2xl shadow-sm overflow-hidden">
+            <div class="bg-white border border-border rounded-2xl shadow-sm overflow-visible">
                 <div class="flex items-center gap-3 px-5 py-4 border-b border-border bg-surface">
                     <div class="w-6 h-6 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0F4CDB" stroke-width="2.5" stroke-linecap="round">
@@ -168,14 +168,31 @@
                 <div class="p-5">
                     @if($activo->qr_image)
                     <div class="flex flex-col items-center">
+                        @php
+                            $qrUrl = null;
+                            $downloadFilename = null;
+                            if ($activo->qr_image) {
+                                $appUrl = config('app.url', '');
+                                $isSecure = request()?->isSecure() ?? false;
+                                if ($isSecure || (is_string($appUrl) && Illuminate\Support\Str::startsWith($appUrl, 'https'))) {
+                                    $qrUrl = secure_asset('storage/' . $activo->qr_image);
+                                } else {
+                                    $qrUrl = asset('storage/' . $activo->qr_image);
+                                }
+
+                                $base = $activo->codigo ?? $activo->id;
+                                $slug = Illuminate\Support\Str::slug($activo->nombre ?? '');
+                                $downloadBasename = 'qr-' . $base . ($slug ? '-' . $slug : '');
+                            }
+                        @endphp
                         {{-- QR image --}}
                         <div class="relative w-44 h-44 mb-4">
                             <div class="absolute inset-0 bg-gradient-to-br from-brand/8 to-accent/8 rounded-2xl"></div>
                             <div class="relative w-44 h-44 bg-white rounded-2xl border-2 border-border flex items-center justify-center overflow-hidden shadow-sm">
-                                <object data="{{ Storage::disk('public')->url($activo->qr_image) }}"
+                                <object data="{{ $qrUrl }}"
                                         type="image/svg+xml"
                                         class="w-36 h-36">
-                                    <img src="{{ Storage::disk('public')->url($activo->qr_image) }}"
+                                    <img src="{{ $qrUrl }}"
                                          alt="QR {{ $activo->nombre }}" class="w-36 h-36">
                                 </object>
                             </div>
@@ -196,17 +213,60 @@
 
                         {{-- Acciones QR --}}
                         <div class="flex flex-col gap-2 w-full">
-                            <a id="download-qr-png"
-                              data-src="{{ Storage::disk('public')->url($activo->qr_image) }}"
-                              data-filename="qr-{{ $activo->codigo ?? $activo->id }}.png"
-                               class="flex items-center justify-center gap-2 w-full py-2.5 bg-brand text-white font-display font-semibold text-sm rounded-xl
-                                      hover:bg-brand-light transition-all hover:-translate-y-0.5 shadow-[0_3px_10px_rgba(15,76,219,0.2)] cursor-pointer">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                         <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                               </svg>
-                              Descargar QR
-                              </a>
+
+                            {{-- Botón descargar con selector de formato --}}
+                               @php $empresaNombre = $activo->empresa?->nombre ?? config('app.name'); @endphp
+                               <div class="relative w-full"
+                                   id="qr-download-wrapper"
+                                   data-src="{{ $qrUrl }}"
+                                   data-name="{{ $activo->nombre }}"
+                                   data-company="{{ $empresaNombre }}"
+                                   data-basename="{{ $downloadBasename }}">
+
+                                {{-- Split button --}}
+                                <div class="flex w-full rounded-xl overflow-hidden shadow-[0_3px_10px_rgba(15,76,219,0.2)]">
+                                    <button type="button" id="qr-download-main"
+                                            class="flex-1 flex items-center justify-center gap-2 py-2.5 bg-brand text-white
+                                                   font-display font-semibold text-sm hover:bg-brand-light transition-all">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                                        </svg>
+                                        <span id="qr-format-label">Descargar PNG</span>
+                                    </button>
+                                    <button type="button" id="qr-format-toggle"
+                                            class="px-3 py-2.5 bg-brand border-l border-white/25 text-white hover:bg-brand-light transition-colors"
+                                            aria-label="Elegir formato">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+                                            <polyline points="6 9 12 15 18 9"/>
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                {{-- Dropdown de formatos --}}
+                                <div id="qr-format-menu"
+                                   class="hidden fixed bg-white border border-border rounded-xl shadow-lg z-50 overflow-hidden">
+                                    <button type="button" data-format="png"
+                                            class="qr-format-opt flex items-center gap-2.5 w-full px-4 py-2.5 text-sm font-semibold text-ink hover:bg-surface transition-colors">
+                                        <span class="w-8 text-center text-[10px] font-bold bg-brand/10 text-brand rounded px-1 py-0.5 uppercase">PNG</span>
+                                        Imagen PNG
+                                        <span class="ml-auto text-[10px] text-ink-faint">Alta calidad</span>
+                                    </button>
+                                    <button type="button" data-format="jpg"
+                                            class="qr-format-opt flex items-center gap-2.5 w-full px-4 py-2.5 text-sm font-semibold text-ink hover:bg-surface transition-colors border-t border-border">
+                                        <span class="w-8 text-center text-[10px] font-bold bg-amber-100 text-amber-700 rounded px-1 py-0.5 uppercase">JPG</span>
+                                        Imagen JPG
+                                        <span class="ml-auto text-[10px] text-ink-faint">Comprimida</span>
+                                    </button>
+                                    <button type="button" data-format="svg"
+                                            class="qr-format-opt flex items-center gap-2.5 w-full px-4 py-2.5 text-sm font-semibold text-ink hover:bg-surface transition-colors border-t border-border">
+                                        <span class="w-8 text-center text-[10px] font-bold bg-emerald-100 text-emerald-700 rounded px-1 py-0.5 uppercase">SVG</span>
+                                        Vector SVG
+                                        <span class="ml-auto text-[10px] text-ink-faint">Escalable</span>
+                                    </button>
+                                </div>
+                            </div>
+
                             <a href="{{ $activo->urlPublica() }}" target="_blank"
                                class="flex items-center justify-center gap-2 w-full py-2.5 border border-border text-ink font-display font-semibold text-sm rounded-xl
                                       hover:border-brand hover:text-brand transition-all">
@@ -337,72 +397,263 @@
     </div>
 </x-app-layout>
 <script>
-    async function svgUrlToPngAndDownload(svgUrl, filename, size = 1024) {
+   function encodeHTML(str){ if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+async function svgUrlToPngAndDownload(svgUrl, filename, size = 1024, topLabel = null, bottomLabel = null, mimeType = 'image/png') {
+    try {
+        let fetchUrl = svgUrl;
         try {
-            // If the SVG URL is on a different host (e.g. 'localhost' vs '127.0.0.1'),
-            // convert to a same-origin relative path so the browser doesn't block it with CORS.
-            let fetchUrl = svgUrl;
-            try {
-                const parsed = new URL(svgUrl, window.location.href);
-                if (parsed.host !== window.location.host) {
-                    fetchUrl = parsed.pathname + parsed.search;
-                }
-            } catch (err) {
-                // ignore and use original svgUrl
+            const parsed = new URL(svgUrl, window.location.href);
+            if (parsed.host !== window.location.host) fetchUrl = parsed.pathname + parsed.search;
+        } catch (err) {}
+
+        const res = await fetch(fetchUrl);
+        if (!res.ok) throw new Error('No se pudo obtener el SVG');
+        const svgText = await res.text();
+
+        const svgBlob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = url;
+        await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = () => reject(new Error('Error cargando la imagen SVG'));
+        });
+
+        // ── Diseño profesional ──────────────────────────────────────
+        const PAD        = Math.round(size * 0.06);   // padding lateral
+        const TOP_H      = topLabel    ? Math.round(size * 0.14) : PAD;
+        const BOTTOM_H   = bottomLabel ? Math.round(size * 0.18) : PAD;
+        const QR_SIZE    = size - PAD * 2;             // QR con margen lateral
+        const TOTAL_H    = TOP_H + QR_SIZE + BOTTOM_H;
+
+        const canvas = document.createElement('canvas');
+        canvas.width  = size;
+        canvas.height = TOTAL_H;
+        const ctx = canvas.getContext('2d');
+
+        // Fondo blanco
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Línea decorativa superior removida (ya no se dibuja línea azul)
+
+        // Empresa (arriba) — centrada verticalmente en su bloque
+        if (topLabel) {
+            const company = topLabel.toUpperCase();
+            const maxW    = canvas.width - PAD * 2;
+            // Reducir font-size automáticamente hasta que quepa en el ancho
+            let fsCompany = Math.round(size * 0.07);
+            ctx.font = `700 ${fsCompany}px system-ui, -apple-system, 'Segoe UI', Roboto, Arial`;
+            while (ctx.measureText(company).width > maxW && fsCompany > 18) {
+                fsCompany -= 2;
+                ctx.font = `700 ${fsCompany}px system-ui, -apple-system, 'Segoe UI', Roboto, Arial`;
             }
-
-            const res = await fetch(fetchUrl);
-            if (!res.ok) throw new Error('No se pudo obtener el SVG');
-            const svgText = await res.text();
-
-            // Create a blob URL for the SVG and load into an image
-            const svgBlob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
-            const url = URL.createObjectURL(svgBlob);
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.src = url;
-            await new Promise((resolve, reject) => {
-                img.onload = resolve;
-                img.onerror = () => reject(new Error('Error cargando la imagen SVG'));
-            });
-
-            // Draw to canvas at requested size
-            const canvas = document.createElement('canvas');
-            canvas.width = size;
-            canvas.height = size;
-            const ctx = canvas.getContext('2d');
-            // white background
-            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-            // Convert to blob and trigger download
-            canvas.toBlob((blob) => {
-                if (!blob) return;
-                const a = document.createElement('a');
-                const objectUrl = URL.createObjectURL(blob);
-                a.href = objectUrl;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(objectUrl);
-                URL.revokeObjectURL(url);
-            }, 'image/png', 0.95);
-        } catch (err) {
-            console.error('Error descargando PNG:', err);
-            if (window.showToast) window.showToast('No se pudo descargar PNG', 'error');
-            else alert('No se pudo descargar PNG');
+            ctx.fillStyle = '#374151';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            // Centrar verticalmente dentro del bloque superior
+            ctx.fillText(company, canvas.width / 2, Math.round(TOP_H / 2));
         }
+
+        // QR centrado
+        ctx.drawImage(img, PAD, TOP_H, QR_SIZE, QR_SIZE);
+
+        // Nombre del activo (abajo) — reduce font-size hasta que quepa, sin truncar
+        if (bottomLabel) {
+            const asset  = bottomLabel.toUpperCase();
+            const maxW   = canvas.width - PAD * 2;
+            const yCenter = TOP_H + QR_SIZE + Math.round(BOTTOM_H / 2);
+
+            ctx.fillStyle   = '#111827';
+            ctx.textAlign   = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Empezar grande y reducir hasta que quepa
+            let fsAsset = Math.round(size * 0.12);
+            ctx.font = `900 ${fsAsset}px system-ui, -apple-system, 'Segoe UI', Roboto, Arial`;
+            while (ctx.measureText(asset).width > maxW && fsAsset > 20) {
+                fsAsset -= 2;
+                ctx.font = `900 ${fsAsset}px system-ui, -apple-system, 'Segoe UI', Roboto, Arial`;
+            }
+            ctx.fillText(asset, canvas.width / 2, yCenter);
+        }
+
+        // Línea decorativa inferior removida (ya no se dibuja línea azul)
+
+        canvas.toBlob((blob) => {
+            if (!blob) return;
+            const a = document.createElement('a');
+            const objectUrl = URL.createObjectURL(blob);
+            a.href = objectUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(objectUrl);
+            URL.revokeObjectURL(url);
+        }, mimeType, 0.95);
+    } catch (err) {
+        console.error('Error descargando PNG:', err);
+        if (window.showToast) window.showToast('No se pudo descargar PNG', 'error');
+        else alert('No se pudo descargar PNG');
+    }
+}
+
+async function svgUrlAndDownload(svgUrl, basename, format, label) {
+    if (format !== 'svg') {
+        const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
+        const ext      = format === 'jpg' ? '.jpg' : '.png';
+        svgUrlToPngAndDownload(svgUrl, basename + ext, 1024, label?.company ?? null, label?.asset ?? null, mimeType);
+        return;
+    }
+    try {
+        let fetchUrl = svgUrl;
+        try {
+            const parsed = new URL(svgUrl, window.location.href);
+            if (parsed.host !== window.location.host) fetchUrl = parsed.pathname + parsed.search;
+        } catch (e) {}
+        const res = await fetch(fetchUrl);
+        if (!res.ok) throw new Error('No se pudo obtener el SVG');
+        const svgText = await res.text();
+
+        let finalSvg = svgText;
+        const top    = label?.company ? label.company.toUpperCase() : '';
+        const bottom = label?.asset   ? label.asset.toUpperCase()   : '';
+
+        if (top || bottom) {
+            // Leer dimensiones del SVG original
+            const parser = new DOMParser();
+            const doc    = parser.parseFromString(svgText, 'image/svg+xml');
+            const svgEl  = doc.documentElement;
+
+            let origW = 0, origH = 0;
+            const vb = svgEl.getAttribute('viewBox');
+            if (vb) {
+                const parts = vb.trim().split(/[\s,]+/);
+                if (parts.length === 4) { origW = parseFloat(parts[2]) || 0; origH = parseFloat(parts[3]) || 0; }
+            }
+            if (!origW) origW = parseFloat(svgEl.getAttribute('width'))  || 300;
+            if (!origH) origH = parseFloat(svgEl.getAttribute('height')) || origW;
+
+            // Bloques superior e inferior proporcionales al QR
+            const topPx    = top    ? Math.round(origH * 0.13) : 0;
+            const bottomPx = bottom ? Math.round(origH * 0.16) : 0;
+            const pad      = Math.round(origW * 0.04);
+            const totalH   = topPx + origH + bottomPx;
+            const maxTextW = origW - pad * 2; // ancho máximo disponible para los textos
+
+            // Tamaños de fuente
+            const fsTop    = Math.round(origH * 0.09);  // empresa
+            const fsBottom = Math.round(origH * 0.13);  // activo
+
+            // Posiciones Y centradas en cada bloque
+            const topY    = Math.round(topPx / 2);                    // empresa: centro del bloque superior
+            const bottomY = topPx + origH + Math.round(bottomPx / 2); // activo: centro del bloque inferior
+
+            // Embeber el SVG original como <image> data-URI
+            const dataUri   = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgText);
+            const encTop    = encodeHTML(top);
+            const encBottom = encodeHTML(bottom);
+
+            // textLength fuerza que el texto siempre quepa sin cortarse (SVG nativo)
+            const topTextAttr    = top    ? ` textLength="${maxTextW}" lengthAdjust="spacingAndGlyphs"` : '';
+            const bottomTextAttr = bottom ? ` textLength="${maxTextW}" lengthAdjust="spacingAndGlyphs"` : '';
+
+            // Construir SVG final — sin líneas azules, textos siempre visibles y centrados
+            finalSvg = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+                `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${origW} ${totalH}" width="${origW}" height="${totalH}">\n` +
+                `  <rect width="${origW}" height="${totalH}" fill="#ffffff"/>\n` +
+                `  <image href="${dataUri}" x="0" y="${topPx}" width="${origW}" height="${origH}"/>\n` +
+                (top    ? `  <text x="${origW/2}" y="${topY}" text-anchor="middle" dominant-baseline="middle" fill="#374151" font-weight="800" font-size="${fsTop}" font-family="Arial Black,Arial,sans-serif"${topTextAttr}>${encTop}</text>\n` : '') +
+                (bottom ? `  <text x="${origW/2}" y="${bottomY}" text-anchor="middle" dominant-baseline="middle" fill="#111827" font-weight="900" font-size="${fsBottom}" font-family="Arial Black,Arial,sans-serif"${bottomTextAttr}>${encBottom}</text>\n` : '') +
+                '</svg>';
+        }
+
+        const blob = new Blob([finalSvg], { type: 'image/svg+xml;charset=utf-8' });
+        const a    = document.createElement('a');
+        a.href     = URL.createObjectURL(blob);
+        a.download = basename + '.svg';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    } catch (err) {
+        console.error('Error descargando SVG:', err);
+        if (window.showToast) window.showToast('No se pudo descargar SVG', 'error');
+        else alert('No se pudo descargar SVG');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const wrapper     = document.getElementById('qr-download-wrapper');
+    if (!wrapper) return;
+
+    const mainBtn     = document.getElementById('qr-download-main');
+    const toggleBtn   = document.getElementById('qr-format-toggle');
+    const menu        = document.getElementById('qr-format-menu');
+    const formatLabel = document.getElementById('qr-format-label');
+    const formatOpts  = document.querySelectorAll('.qr-format-opt');
+
+    if (!mainBtn || !toggleBtn || !menu) return;
+
+    let selectedFormat = 'png';
+    const formatNames  = { png: 'Descargar PNG', jpg: 'Descargar JPG', svg: 'Descargar SVG' };
+
+    // Mover al body para escapar de contenedores con overflow-hidden
+    document.body.appendChild(menu);
+
+    function positionMenu() {
+        const tr = toggleBtn.getBoundingClientRect();
+        const mr = mainBtn.getBoundingClientRect();
+        const totalWidth = mr.width + tr.width;
+        let left = mr.left;
+        if (left + totalWidth > window.innerWidth) left = Math.max(8, window.innerWidth - totalWidth - 8);
+        // cssText evita que Tailwind sobreescriba propiedades individuales
+        menu.style.cssText = `position:fixed;width:${totalWidth}px;left:${left}px;bottom:${Math.round(window.innerHeight - tr.top + 6)}px;top:auto;transform:none;z-index:99999;`;
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const btn = document.getElementById('download-qr-png');
-        if (!btn) return;
-        btn.addEventListener('click', function() {
-            const src = btn.getAttribute('data-src');
-            const filename = btn.getAttribute('data-filename') || 'qr.png';
-            // tamaño razonable para impresión/uso: 1024
-            svgUrlToPngAndDownload(src, filename, 1024);
+    function openMenu()  { positionMenu(); menu.classList.remove('hidden'); toggleBtn.setAttribute('aria-expanded', 'true'); }
+    function closeMenu() { menu.classList.add('hidden');    toggleBtn.setAttribute('aria-expanded', 'false'); }
+
+    toggleBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        menu.classList.contains('hidden') ? openMenu() : closeMenu();
+    });
+
+    // pointerdown detecta toque fuera en móvil antes del synthetic click
+    document.addEventListener('pointerdown', function (e) {
+        if (menu.classList.contains('hidden')) return;
+        if (menu.contains(e.target) || toggleBtn.contains(e.target) || e.target === toggleBtn) return;
+        closeMenu();
+    });
+
+    formatOpts.forEach(function (opt) {
+        opt.addEventListener('click', function (e) {
+            e.stopPropagation();
+            selectedFormat = opt.getAttribute('data-format');
+            formatLabel.textContent = formatNames[selectedFormat] || 'Descargar';
+            closeMenu();
+            triggerDownload();
         });
     });
+
+    mainBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        closeMenu();
+        triggerDownload();
+    });
+
+    function triggerDownload() {
+        const src      = wrapper.getAttribute('data-src');
+        const name     = wrapper.getAttribute('data-name')    || null;
+        const company  = wrapper.getAttribute('data-company') || null;
+        const basename = wrapper.getAttribute('data-basename') || 'qr';
+        if (!src) return;
+        svgUrlAndDownload(src, basename, selectedFormat, { asset: name, company: company });
+    }
+
+    window.addEventListener('scroll', function () { if (!menu.classList.contains('hidden')) positionMenu(); }, { passive: true });
+    window.addEventListener('resize', function () { if (!menu.classList.contains('hidden')) positionMenu(); });
+});
 </script>

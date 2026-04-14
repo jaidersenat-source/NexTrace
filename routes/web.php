@@ -41,8 +41,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
          ->name('scanner.index');
 
     Route::middleware('role:admin')->group(function () {
-        Route::get('/empresa/configuracion', [EmpresaController::class, 'edit'])->name('empresa.edit');
-        Route::patch('/empresa/configuracion', [EmpresaController::class, 'update'])->name('empresa.update');
         Route::get('/auditoria', [ActivityLogController::class, 'index'])->name('activity-logs.index');
     });
 
@@ -88,7 +86,7 @@ Route::post('/a/{token}/toggle', [PublicAssetController::class, 'toggle'])
      ->only(['index', 'show'])          // ← agrega show
      ->middleware('role:admin,empleado');
 
-     Route::middleware('role:admin')->group(function () {
+     Route::middleware(['auth', 'verified', 'usuario.activo', 'role:admin'])->group(function () {
 
     // Usuarios de empresa
     Route::resource('usuarios', UserController::class)
@@ -100,24 +98,22 @@ Route::post('/a/{token}/toggle', [PublicAssetController::class, 'toggle'])
     Route::patch('/usuarios/{usuario}/password', [UserController::class, 'resetPassword'])
          ->name('usuarios.password');
 
-    // Empresa y auditoría (ya existentes)
+    // Empresa
     Route::get('/empresa/configuracion', [EmpresaController::class, 'edit'])
          ->name('empresa.edit');
     Route::patch('/empresa/configuracion', [EmpresaController::class, 'update'])
          ->name('empresa.update');
-    Route::get('/auditoria', [ActivityLogController::class, 'index'])
-         ->name('activity-logs.index');
-        
-        // Categorías de activos (crear desde modal)
-        Route::post('/categorias', [\App\Http\Controllers\CategoriaActivoController::class, 'store'])
-             ->name('categorias.store');
+
+    // Categorías de activos (crear desde modal)
+    Route::post('/categorias', [\App\Http\Controllers\CategoriaActivoController::class, 'store'])
+         ->name('categorias.store');
 });
 
 Route::middleware(['auth', 'verified', 'usuario.activo'])->group(function () {
     // todas las rutas protegidas
 });
 
-Route::middleware('role:admin')->group(function () {
+Route::middleware(['auth', 'verified', 'usuario.activo', 'role:admin'])->group(function () {
 
     Route::get('/reportes', [ReporteController::class, 'index'])
          ->name('reportes.index');

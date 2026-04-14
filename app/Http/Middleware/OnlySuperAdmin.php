@@ -9,7 +9,7 @@ class OnlySuperAdmin
 {
     public function handle(Request $request, Closure $next): mixed
     {
-        if (! auth()->check() || ! auth()->user()->esSuperAdmin()) {
+        if (! auth()->check() || ! (auth()->user()->esSuperAdmin() || auth()->user()->esAdmin())) {
             abort(403, 'Acceso restringido.');
         }
 

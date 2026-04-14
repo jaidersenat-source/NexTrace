@@ -15,6 +15,9 @@ class EmpresaController extends Controller
     public function edit(): View
     {
         $empresa = auth()->user()->empresa;
+
+        abort_if(is_null($empresa), 404, 'Empresa no encontrada.');
+
         $this->authorize('update', $empresa);
 
         return view('empresa.edit', compact('empresa'));
@@ -23,7 +26,8 @@ class EmpresaController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $empresa = auth()->user()->empresa;
-        $this->authorize('update', $empresa);
+
+        abort_if(is_null($empresa), 404, 'Empresa no encontrada.');
 
         $validated = $request->validate([
             'nombre'           => ['required', 'string', 'max:100'],
